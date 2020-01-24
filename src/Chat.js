@@ -5,17 +5,13 @@ import {
   Input,
   Grid,
   Segment,
-  Card,
-  List,
-  Sticky,
   Button,
-  Image,
-  Comment
 } from "semantic-ui-react";
-import "./App.css";
-import avatar from "./avatar.png";
 import SweetAlert from "react-bootstrap-sweetalert";
-import { format, formatRelative } from "date-fns";
+import { format } from "date-fns";
+import "./App.css";
+import UsersList from "./UsersList";
+import MessageBox from "./MessageBox";
 
 
 const configuration = {
@@ -238,7 +234,7 @@ const Chat = ({ connection, updateConnection, channel, updateChannel }) => {
           name
         });
       },
-      function(error) {
+      error => {
         alert("oops...error");
       }
     );
@@ -354,92 +350,20 @@ const Chat = ({ connection, updateConnection, channel, updateChannel }) => {
         </Grid.Column>
       </Grid>
       <Grid>
-        <Grid.Column width={5}>
-          <Card fluid>
-            <Card.Content header="Online Users" />
-            <Card.Content textAlign="left">
-              {(users.length && (
-                <List divided verticalAlign="middle" size="large">
-                  {users.map(({ userName }) => (
-                    <List.Item key={userName}>
-                      <List.Content floated="right">
-                        <Button
-                          onClick={() => {
-                            toggleConnection(userName);
-                          }}
-                          disabled={!!connectedTo && connectedTo !== userName}
-                          loading={connectedTo === userName && connecting}
-                        >
-                          {connectedTo === userName ? "Disconnect" : "Connect"}
-                        </Button>
-                      </List.Content>
-                      <Image avatar src={avatar} />
-                      {/* <Icon name="user" size="large" /> */}
-                      <List.Content>
-                        <List.Header>{userName}</List.Header>
-                      </List.Content>
-                    </List.Item>
-                  ))}
-                </List>
-              )) || <Segment>There are no users Online</Segment>}
-            </Card.Content>
-          </Card>
-        </Grid.Column>
-        <Grid.Column width={11}>
-          <Sticky>
-            <Card fluid>
-              <Card.Content
-                header={
-                  !!connectedTo
-                    ? connectedTo
-                    : "Not chatting with anyone currently"
-                }
-              />
-              <Card.Content>
-                {!!connectedTo && messages[connectedTo] ? (
-                  <Comment.Group>
-                    {messages[connectedTo].map(
-                      ({ name, message: text, time }) => (
-                        <Comment key={`msg-${name}-${time}`}>
-                          <Comment.Avatar src={avatar} />
-                          <Comment.Content>
-                            <Comment.Author>{name}</Comment.Author>
-                            <Comment.Metadata>
-                              <span>
-                                {formatRelative(new Date(time), new Date())}
-                              </span>
-                            </Comment.Metadata>
-                            <Comment.Text>{text}</Comment.Text>
-                          </Comment.Content>
-                        </Comment>
-                      )
-                    )}
-                  </Comment.Group>
-                ) : (
-                  <Segment placeholder>
-                    <Header icon>
-                      <Icon name="discussions" />
-                      No messages available yet
-                    </Header>
-                  </Segment>
-                )}
-                <Input
-                  fluid
-                  type="text"
-                  onChange={e => setMessage(e.target.value)}
-                  placeholder="Type message"
-                  action
-                >
-                  <input />
-                  <Button color="teal" disabled={!message} onClick={sendMsg}>
-                    <Icon name="send" />
-                    Send Message
-                  </Button>
-                </Input>
-              </Card.Content>
-            </Card>
-          </Sticky>
-        </Grid.Column>
+        <UsersList 
+          users={users}
+          toggleConnection={toggleConnection}
+          connectedTo={connectedTo}
+          connection={connecting}
+        />
+        <MessageBox
+          messages={messages}
+          connectedTo={connectedTo}
+          message={message}
+          setMessage={setMessage}
+          sendMsg={sendMsg}
+        
+        />
       </Grid>
     </div>
   );
