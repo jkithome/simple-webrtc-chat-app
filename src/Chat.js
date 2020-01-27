@@ -1,24 +1,17 @@
 import React, { useState, useEffect, useRef } from "react";
-import {
-  Header,
-  Icon,
-  Input,
-  Grid,
-  Segment,
-  Button,
-} from "semantic-ui-react";
+import { Header, Icon, Input, Grid, Segment, Button } from "semantic-ui-react";
 import SweetAlert from "react-bootstrap-sweetalert";
 import { format } from "date-fns";
 import "./App.css";
 import UsersList from "./UsersList";
 import MessageBox from "./MessageBox";
 
-
 const configuration = {
   iceServers: [{ url: "stun:stun.1.google.com:19302" }]
 };
 
 const Chat = ({ connection, updateConnection, channel, updateChannel }) => {
+  const [socketMessages, setSocketMessages] = useState([]);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [name, setName] = useState("");
   const [loggingIn, setLoggingIn] = useState(false);
@@ -27,52 +20,26 @@ const Chat = ({ connection, updateConnection, channel, updateChannel }) => {
   const [connecting, setConnecting] = useState(false);
   const [alert, setAlert] = useState(null);
   const connectedRef = useRef();
-  const wsRef = useRef();
+  const webSocket = useRef(null);
   const [message, setMessage] = useState("");
   const messagesRef = useRef({});
   const [messages, setMessages] = useState({});
 
   useEffect(() => {
-    const ws = new WebSocket("ws://localhost:9000");
-
-    ws.onmessage = event => {
-      const data = JSON.parse(event.data);
-      switch (data.type) {
-        case "login":
-          onLogin(data);
-          break;
-        case "updateUsers": {
-          updateUsersList(data);
-          break;
-        }
-        case "offer":
-          onOffer(data);
-          break;
-        case "answer":
-          onAnswer(data);
-          break;
-        case "candidate":
-          onCandidate(data);
-          break;
-        default:
-          break;
-      }
+    webSocket.current = new WebSocket("ws://localhost:9000");
+    webSocket.current.onmessage = message => {
+      const data = JSON.parse(message.data);
+      setSocketMessages(prev => [...prev, data]);
     };
-    ws.onclose = () => {
-      ws.close();
+    webSocket.current.onclose = () => {
+      webSocket.current.close();
     };
-
-    wsRef.current = ws;
-
-    return () => {
-      ws.close();
-      wsRef.current = null;
-    };
+    return () => webSocket.current.close();
   }, []);
 
-  const updateSocket = () => {
-    wsRef.current.onmessage = event => {
-      const data = JSON.parse(event.data);
+  useEffect(() => {
+    let data = socketMessages.pop();
+    if (data) {
       switch (data.type) {
         case "login":
           onLogin(data);
@@ -93,21 +60,21 @@ const Chat = ({ connection, updateConnection, channel, updateChannel }) => {
         default:
           break;
       }
-    };
-  }
+    }
+  }, [socketMessages]);
 
   useEffect(() => {
-    if(connection) {
+    if (connection) {
       openDataChannel();
     }
-  }, [connection])
+  }, [connection]);
 
   const closeAlert = () => {
     setAlert(null);
   };
 
   const send = data => {
-    wsRef.current.send(JSON.stringify(data));
+    webSocket.current.send(JSON.stringify(data));
   };
 
   const handleLogin = () => {
@@ -173,8 +140,6 @@ const Chat = ({ connection, updateConnection, channel, updateChannel }) => {
         receiveChannel.onmessage = handleDataChannelMessageReceived;
       };
       updateConnection(localConnection);
-      updateSocket();
-      // openDataChannel();
     } else {
       setAlert(
         <SweetAlert
@@ -216,7 +181,6 @@ const Chat = ({ connection, updateConnection, channel, updateChannel }) => {
 
     dataChannel.onmessage = handleDataChannelMessageReceived;
     updateChannel(dataChannel);
-    updateSocket();
   };
 
   //when somebody wants to message us
@@ -255,7 +219,7 @@ const Chat = ({ connection, updateConnection, channel, updateChannel }) => {
     const time = format(new Date(), "yyyy-MM-dd'T'HH:mm:ss.SSSxxx");
     let text = { time, message, name };
     let messages = messagesRef.current;
-    let connectedTo = connectedRef.current
+    let connectedTo = connectedRef.current;
     let userMessages = messages[connectedTo];
     if (messages[connectedTo]) {
       userMessages = [...userMessages, text];
@@ -350,7 +314,7 @@ const Chat = ({ connection, updateConnection, channel, updateChannel }) => {
         </Grid.Column>
       </Grid>
       <Grid>
-        <UsersList 
+        <UsersList
           users={users}
           toggleConnection={toggleConnection}
           connectedTo={connectedTo}
@@ -362,7 +326,6 @@ const Chat = ({ connection, updateConnection, channel, updateChannel }) => {
           message={message}
           setMessage={setMessage}
           sendMsg={sendMsg}
-        
         />
       </Grid>
     </div>
