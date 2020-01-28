@@ -85,8 +85,8 @@ const Chat = ({ connection, updateConnection, channel, updateChannel }) => {
     });
   };
 
-  const updateUsersList = ({ users: loggedIn }) => {
-    setUsers(loggedIn);
+  const updateUsersList = ({ user }) => {
+    setUsers(prev => [...prev, user]);
   };
 
   const handleDataChannelMessageReceived = ({ data }) => {
