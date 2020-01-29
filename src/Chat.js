@@ -40,7 +40,7 @@ const Chat = ({ connection, updateConnection, channel, updateChannel }) => {
   const [messages, setMessages] = useState({});
 
   useEffect(() => {
-    webSocket.current = new WebSocket("ws://chat-app-signaller.herokuapp.com");
+    webSocket.current = new WebSocket(process.env.REACT_APP_WEBSOCKET_URL);
     webSocket.current.onmessage = message => {
       const data = JSON.parse(message.data);
       setSocketMessages(prev => [...prev, data]);
