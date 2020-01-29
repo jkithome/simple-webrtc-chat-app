@@ -1,18 +1,30 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Header, Icon, Input, Grid, Segment, Button } from "semantic-ui-react";
+import React, { Fragment, useState, useEffect, useRef } from "react";
+import {
+  Header,
+  Icon,
+  Input,
+  Grid,
+  Segment,
+  Button,
+  Dimmer,
+  Loader
+} from "semantic-ui-react";
 import SweetAlert from "react-bootstrap-sweetalert";
 import { format } from "date-fns";
 import "./App.css";
 import UsersList from "./UsersList";
 import MessageBox from "./MessageBox";
 
+// Use for remote connections
 // const configuration = {
 //   iceServers: [{ url: "stun:stun.1.google.com:19302" }]
 // };
 
+// Use for local connections
 const configuration = null;
 
 const Chat = ({ connection, updateConnection, channel, updateChannel }) => {
+  const [socketOpen, setSocketOpen] = useState(false);
   const [socketMessages, setSocketMessages] = useState([]);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [name, setName] = useState("");
@@ -43,6 +55,9 @@ const Chat = ({ connection, updateConnection, channel, updateChannel }) => {
     let data = socketMessages.pop();
     if (data) {
       switch (data.type) {
+        case "connect":
+          setSocketOpen(true);
+          break;
         case "login":
           onLogin(data);
           break;
@@ -291,50 +306,60 @@ const Chat = ({ connection, updateConnection, channel, updateChannel }) => {
         <Icon name="users" />
         Simple WebRTC Chap App
       </Header>
-      <Grid centered columns={4}>
-        <Grid.Column>
-          {(!isLoggedIn && (
-            <Input
-              fluid
-              disabled={loggingIn}
-              type="text"
-              onChange={e => setName(e.target.value)}
-              placeholder="Username..."
-              action
-            >
-              <input />
-              <Button
-                color="teal"
-                disabled={!name || loggingIn}
-                onClick={handleLogin}
-              >
-                <Icon name="sign-in" />
-                Login
-              </Button>
-            </Input>
-          )) || (
-            <Segment raised textAlign="center" color="olive">
-              Logged In as: {name}
-            </Segment>
-          )}
-        </Grid.Column>
-      </Grid>
-      <Grid>
-        <UsersList
-          users={users}
-          toggleConnection={toggleConnection}
-          connectedTo={connectedTo}
-          connection={connecting}
-        />
-        <MessageBox
-          messages={messages}
-          connectedTo={connectedTo}
-          message={message}
-          setMessage={setMessage}
-          sendMsg={sendMsg}
-          name={name}
-        />
-      </Grid>
+      {(socketOpen && (
+        <Fragment>
+          <Grid centered columns={4}>
+            <Grid.Column>
+              {(!isLoggedIn && (
+                <Input
+                  fluid
+                  disabled={loggingIn}
+                  type="text"
+                  onChange={e => setName(e.target.value)}
+                  placeholder="Username..."
+                  action
+                >
+                  <input />
+                  <Button
+                    color="teal"
+                    disabled={!name || loggingIn}
+                    onClick={handleLogin}
+                  >
+                    <Icon name="sign-in" />
+                    Login
+                  </Button>
+                </Input>
+              )) || (
+                <Segment raised textAlign="center" color="olive">
+                  Logged In as: {name}
+                </Segment>
+              )}
+            </Grid.Column>
+          </Grid>
+          <Grid>
+            <UsersList
+              users={users}
+              toggleConnection={toggleConnection}
+              connectedTo={connectedTo}
+              connection={connecting}
+            />
+            <MessageBox
+              messages={messages}
+              connectedTo={connectedTo}
+              message={message}
+              setMessage={setMessage}
+              sendMsg={sendMsg}
+              name={name}
+            />
+          </Grid>
+        </Fragment>
+      )) || (
+        <Segment>
+          <Dimmer active>
+            <Loader size="massive">Loading</Loader>
+          </Dimmer>
+        </Segment>
+      )}
     </div>
   );
 };
