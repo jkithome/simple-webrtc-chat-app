@@ -16,12 +16,12 @@ import UsersList from "./UsersList";
 import MessageBox from "./MessageBox";
 
 // Use for remote connections
-// const configuration = {
-//   iceServers: [{ url: "stun:stun.1.google.com:19302" }]
-// };
+const configuration = {
+  iceServers: [{ url: "stun:stun.1.google.com:19302" }]
+};
 
 // Use for local connections
-const configuration = null;
+// const configuration = null;
 
 const Chat = ({ connection, updateConnection, channel, updateChannel }) => {
   const [socketOpen, setSocketOpen] = useState(false);
@@ -40,7 +40,7 @@ const Chat = ({ connection, updateConnection, channel, updateChannel }) => {
   const [messages, setMessages] = useState({});
 
   useEffect(() => {
-    webSocket.current = new WebSocket("ws://localhost:9000");
+    webSocket.current = new WebSocket(process.env.REACT_APP_WEBSOCKET_URL);
     webSocket.current.onmessage = message => {
       const data = JSON.parse(message.data);
       setSocketMessages(prev => [...prev, data]);
