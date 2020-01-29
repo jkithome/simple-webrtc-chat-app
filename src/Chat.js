@@ -6,9 +6,11 @@ import "./App.css";
 import UsersList from "./UsersList";
 import MessageBox from "./MessageBox";
 
-const configuration = {
-  iceServers: [{ url: "stun:stun.1.google.com:19302" }]
-};
+// const configuration = {
+//   iceServers: [{ url: "stun:stun.1.google.com:19302" }]
+// };
+
+const configuration = null;
 
 const Chat = ({ connection, updateConnection, channel, updateChannel }) => {
   const [socketMessages, setSocketMessages] = useState([]);
@@ -136,8 +138,12 @@ const Chat = ({ connection, updateConnection, channel, updateChannel }) => {
       };
 
       localConnection.ondatachannel = event => {
+        console.log("Data channel is created!");
         let receiveChannel = event.channel;
         receiveChannel.onmessage = handleDataChannelMessageReceived;
+        // receiveChannel.onopen = () => {
+        //   console.log('Data channel is open and ready to be used.');
+        // };
       };
       updateConnection(localConnection);
     } else {
@@ -326,6 +332,7 @@ const Chat = ({ connection, updateConnection, channel, updateChannel }) => {
           message={message}
           setMessage={setMessage}
           sendMsg={sendMsg}
+          name={name}
         />
       </Grid>
     </div>

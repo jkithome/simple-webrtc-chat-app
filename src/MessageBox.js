@@ -13,7 +13,7 @@ import {
 import { formatRelative } from "date-fns";
 import avatar from "./avatar.png";
 
-const MessageBox = ({ messages, connectedTo, message, setMessage, sendMsg }) => {
+const MessageBox = ({ messages, connectedTo, message, setMessage, sendMsg, name }) => {
   return (
     <Grid.Column width={11}>
       <Sticky>
@@ -26,11 +26,11 @@ const MessageBox = ({ messages, connectedTo, message, setMessage, sendMsg }) => 
           <Card.Content>
             {!!connectedTo && messages[connectedTo] ? (
               <Comment.Group>
-                {messages[connectedTo].map(({ name, message: text, time }) => (
+                {messages[connectedTo].map(({ name: sender, message: text, time }) => (
                   <Comment key={`msg-${name}-${time}`}>
                     <Comment.Avatar src={avatar} />
                     <Comment.Content>
-                      <Comment.Author>{name}</Comment.Author>
+                      <Comment.Author>{sender === name ? 'You' : sender}</Comment.Author>
                       <Comment.Metadata>
                         <span>
                           {formatRelative(new Date(time), new Date())}
