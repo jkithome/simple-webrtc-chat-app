@@ -40,7 +40,7 @@ const Chat = ({ connection, updateConnection, channel, updateChannel }) => {
   const [messages, setMessages] = useState({});
 
   useEffect(() => {
-    webSocket.current = new WebSocket(process.env.REACT_APP_WEBSOCKET_URL);
+    webSocket.current = new WebSocket("ws://chat-app-signaller.herokuapp.com");
     webSocket.current.onmessage = message => {
       const data = JSON.parse(message.data);
       setSocketMessages(prev => [...prev, data]);
@@ -156,9 +156,9 @@ const Chat = ({ connection, updateConnection, channel, updateChannel }) => {
         console.log("Data channel is created!");
         let receiveChannel = event.channel;
         receiveChannel.onmessage = handleDataChannelMessageReceived;
-        // receiveChannel.onopen = () => {
-        //   console.log('Data channel is open and ready to be used.');
-        // };
+        receiveChannel.onopen = () => {
+          console.log('Data channel is open and ready to be used.');
+        };
       };
       updateConnection(localConnection);
     } else {
@@ -353,13 +353,7 @@ const Chat = ({ connection, updateConnection, channel, updateChannel }) => {
             />
           </Grid>
         </Fragment>
-      )) || (
-        <Segment>
-          <Dimmer active>
-            <Loader size="massive">Loading</Loader>
-          </Dimmer>
-        </Segment>
-      )}
+      )) || <Loader size="massive" active inline='centered'>Loading</Loader>}
     </div>
   );
 };
