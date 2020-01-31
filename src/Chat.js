@@ -169,54 +169,10 @@ const Chat = ({ connection, updateConnection, channel, updateChannel }) => {
     }
   };
 
-  // const openDataChannel = () => {
-  //   var dataChannelOptions = {
-  //     reliable: true
-  //   };
-
-  //   let dataChannel = connection.createDataChannel(
-  //     "myDataChannel",
-  //     dataChannelOptions
-  //   );
-
-  //   dataChannel.onerror = error => {
-  //     setAlert(
-  //       <SweetAlert
-  //         warning
-  //         confirmBtnBsStyle="danger"
-  //         title="Failed"
-  //         onConfirm={closeAlert}
-  //         onCancel={closeAlert}
-  //       >
-  //         An error has occurred.
-  //       </SweetAlert>
-  //     );
-  //   };
-
-  //   dataChannel.onmessage = handleDataChannelMessageReceived;
-  //   updateChannel(dataChannel);
-  // };
-
   //when somebody wants to message us
   const onOffer = ({ offer, name }) => {
     setConnectedTo(name);
     connectedRef.current = name;
-
-    // connection.setRemoteDescription(new RTCSessionDescription(offer));
-
-    // connection.createAnswer(
-    //   answer => {
-    //     connection.setLocalDescription(new RTCSessionDescription(answer));
-    //     send({
-    //       type: "answer",
-    //       answer: answer,
-    //       name
-    //     });
-    //   },
-    //   error => {
-    //     alert("oops...error");
-    //   }
-    // );
 
     connection
       .setRemoteDescription(new RTCSessionDescription(offer))
@@ -243,13 +199,11 @@ const Chat = ({ connection, updateConnection, channel, updateChannel }) => {
 
   //when another user answers to our offer
   const onAnswer = ({ answer }) => {
-    // console.log({ answer, date: new Date() });
     connection.setRemoteDescription(new RTCSessionDescription(answer));
   };
 
   //when we got ice candidate from another user
   const onCandidate = ({ candidate }) => {
-    // console.log({ candidate, date: new Date() });
     connection.addIceCandidate(new RTCIceCandidate(candidate));
   };
 
@@ -319,31 +273,6 @@ const Chat = ({ connection, updateConnection, channel, updateChannel }) => {
           </SweetAlert>
         )
       );
-
-    // connection.createOffer(
-    //   offer => {
-    //     send({
-    //       type: "offer",
-    //       offer: offer,
-    //       name
-    //     });
-
-    //     connection.setLocalDescription(new RTCSessionDescription(offer));
-    //   },
-    //   error => {
-    //     setAlert(
-    //       <SweetAlert
-    //         warning
-    //         confirmBtnBsStyle="danger"
-    //         title="Failed"
-    //         onConfirm={closeAlert}
-    //         onCancel={closeAlert}
-    //       >
-    //         An error has occurred.
-    //       </SweetAlert>
-    //     );
-    //   }
-    // );
   };
 
   const toggleConnection = userName => {
