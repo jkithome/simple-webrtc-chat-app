@@ -6,7 +6,6 @@ import {
   Grid,
   Segment,
   Button,
-  Dimmer,
   Loader
 } from "semantic-ui-react";
 import SweetAlert from "react-bootstrap-sweetalert";
@@ -80,12 +79,6 @@ const Chat = ({ connection, updateConnection, channel, updateChannel }) => {
     }
   }, [socketMessages]);
 
-  useEffect(() => {
-    if (connection) {
-      openDataChannel();
-    }
-  }, [connection]);
-
   const closeAlert = () => {
     setAlert(null);
   };
@@ -151,14 +144,14 @@ const Chat = ({ connection, updateConnection, channel, updateChannel }) => {
           });
         }
       };
-
       localConnection.ondatachannel = event => {
         console.log("Data channel is created!");
         let receiveChannel = event.channel;
-        receiveChannel.onmessage = handleDataChannelMessageReceived;
         receiveChannel.onopen = () => {
-          console.log('Data channel is open and ready to be used.');
+          console.log("Data channel is open and ready to be used.");
         };
+        receiveChannel.onmessage = handleDataChannelMessageReceived;
+        updateChannel(receiveChannel);
       };
       updateConnection(localConnection);
     } else {
@@ -176,62 +169,87 @@ const Chat = ({ connection, updateConnection, channel, updateChannel }) => {
     }
   };
 
-  const openDataChannel = () => {
-    var dataChannelOptions = {
-      reliable: true
-    };
+  // const openDataChannel = () => {
+  //   var dataChannelOptions = {
+  //     reliable: true
+  //   };
 
-    let dataChannel = connection.createDataChannel(
-      "myDataChannel",
-      dataChannelOptions
-    );
+  //   let dataChannel = connection.createDataChannel(
+  //     "myDataChannel",
+  //     dataChannelOptions
+  //   );
 
-    dataChannel.onerror = error => {
-      setAlert(
-        <SweetAlert
-          warning
-          confirmBtnBsStyle="danger"
-          title="Failed"
-          onConfirm={closeAlert}
-          onCancel={closeAlert}
-        >
-          An error has occurred.
-        </SweetAlert>
-      );
-    };
+  //   dataChannel.onerror = error => {
+  //     setAlert(
+  //       <SweetAlert
+  //         warning
+  //         confirmBtnBsStyle="danger"
+  //         title="Failed"
+  //         onConfirm={closeAlert}
+  //         onCancel={closeAlert}
+  //       >
+  //         An error has occurred.
+  //       </SweetAlert>
+  //     );
+  //   };
 
-    dataChannel.onmessage = handleDataChannelMessageReceived;
-    updateChannel(dataChannel);
-  };
+  //   dataChannel.onmessage = handleDataChannelMessageReceived;
+  //   updateChannel(dataChannel);
+  // };
 
   //when somebody wants to message us
   const onOffer = ({ offer, name }) => {
     setConnectedTo(name);
     connectedRef.current = name;
-    connection.setRemoteDescription(new RTCSessionDescription(offer));
 
-    connection.createAnswer(
-      answer => {
-        connection.setLocalDescription(answer);
-        send({
-          type: "answer",
-          answer: answer,
-          name
-        });
-      },
-      error => {
-        alert("oops...error");
-      }
-    );
+    // connection.setRemoteDescription(new RTCSessionDescription(offer));
+
+    // connection.createAnswer(
+    //   answer => {
+    //     connection.setLocalDescription(new RTCSessionDescription(answer));
+    //     send({
+    //       type: "answer",
+    //       answer: answer,
+    //       name
+    //     });
+    //   },
+    //   error => {
+    //     alert("oops...error");
+    //   }
+    // );
+
+    connection
+      .setRemoteDescription(new RTCSessionDescription(offer))
+      .then(() => connection.createAnswer())
+      .then(answer => connection.setLocalDescription(answer))
+      .then(() =>
+        send({ type: "answer", answer: connection.localDescription, name })
+      )
+      .catch(e => {
+        console.log({ e });
+        setAlert(
+          <SweetAlert
+            warning
+            confirmBtnBsStyle="danger"
+            title="Failed"
+            onConfirm={closeAlert}
+            onCancel={closeAlert}
+          >
+            An error has occurred.
+          </SweetAlert>
+        );
+      });
   };
 
   //when another user answers to our offer
   const onAnswer = ({ answer }) => {
+    // console.log({ answer, date: new Date() });
     connection.setRemoteDescription(new RTCSessionDescription(answer));
   };
 
   //when we got ice candidate from another user
   const onCandidate = ({ candidate }) => {
+    // console.log({ candidate, date: new Date() });
     connection.addIceCandidate(new RTCIceCandidate(candidate));
   };
 
@@ -259,17 +277,36 @@ const Chat = ({ connection, updateConnection, channel, updateChannel }) => {
   };
 
   const handleConnection = name => {
-    connection.createOffer(
-      offer => {
-        send({
-          type: "offer",
-          offer: offer,
-          name
-        });
+    var dataChannelOptions = {
+      reliable: true
+    };
 
-        connection.setLocalDescription(offer);
-      },
-      error => {
+    let dataChannel = connection.createDataChannel("messenger");
+
+    dataChannel.onerror = error => {
+      setAlert(
+        <SweetAlert
+          warning
+          confirmBtnBsStyle="danger"
+          title="Failed"
+          onConfirm={closeAlert}
+          onCancel={closeAlert}
+        >
+          An error has occurred.
+        </SweetAlert>
+      );
+    };
+
+    dataChannel.onmessage = handleDataChannelMessageReceived;
+    updateChannel(dataChannel);
+
+    connection
+      .createOffer()
+      .then(offer => connection.setLocalDescription(offer))
+      .then(() =>
+        send({ type: "offer", offer: connection.localDescription, name })
+      )
+      .catch(e =>
         setAlert(
           <SweetAlert
             warning
@@ -280,9 +317,33 @@ const Chat = ({ connection, updateConnection, channel, updateChannel }) => {
           >
             An error has occurred.
           </SweetAlert>
-        );
-      }
-    );
+        )
+      );
+
+    // connection.createOffer(
+    //   offer => {
+    //     send({
+    //       type: "offer",
+    //       offer: offer,
+    //       name
+    //     });
+
+    //     connection.setLocalDescription(new RTCSessionDescription(offer));
+    //   },
+    //   error => {
+    //     setAlert(
+    //       <SweetAlert
+    //         warning
+    //         confirmBtnBsStyle="danger"
+    //         title="Failed"
+    //         onConfirm={closeAlert}
+    //         onCancel={closeAlert}
+    //       >
+    //         An error has occurred.
+    //       </SweetAlert>
+    //     );
+    //   }
+    // );
   };
 
   const toggleConnection = userName => {
@@ -353,7 +414,11 @@ const Chat = ({ connection, updateConnection, channel, updateChannel }) => {
             />
           </Grid>
         </Fragment>
-      )) || <Loader size="massive" active inline='centered'>Loading</Loader>}
+      )) || (
+        <Loader size="massive" active inline="centered">
+          Loading
+        </Loader>
+      )}
     </div>
   );
 };
