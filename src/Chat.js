@@ -60,10 +60,12 @@ const Chat = ({ connection, updateConnection, channel, updateChannel }) => {
         case "login":
           onLogin(data);
           break;
-        case "updateUsers": {
+        case "updateUsers":
           updateUsersList(data);
           break;
-        }
+        case "removeUser":
+          removeUser(data);
+          break;
         case "offer":
           onOffer(data);
           break;
@@ -98,6 +100,10 @@ const Chat = ({ connection, updateConnection, channel, updateChannel }) => {
   const updateUsersList = ({ user }) => {
     setUsers(prev => [...prev, user]);
   };
+
+  const removeUser = ({ user }) => {
+    setUsers(prev => prev.filter(u => u.userName !== user.userName));
+  }
 
   const handleDataChannelMessageReceived = ({ data }) => {
     const message = JSON.parse(data);
