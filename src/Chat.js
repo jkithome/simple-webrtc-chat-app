@@ -81,7 +81,7 @@ function onConnect() {
   console.log("subscribed to demo topic")
 }
 
-// Called when a message arrives
+// Called when a message arrives on mqtt topic
 function onMessageArrived(message) {
   console.log("onMessageArrived: " + message.payloadString);
   const data = JSON.parse(message.payloadString)
@@ -96,29 +96,39 @@ function onMessageArrived(message) {
       switch (data.type) {
         case "connect":
           setSocketOpen(true);
-          break;
+          break
         case "login":
-          onLogin(data);
-          break;
+          // we sent the login message
+          if (data.name === name) onLogin(data)
+          // or someone else logged in
+          else updateUsersList(data.users[0])
+          break
         case "updateUsers":
           updateUsersList(data);
-          break;
+          break
         case "removeUser":
-          removeUser(data);
-          break;
+          removeUser(data)
+          break
         case "offer":
-          onOffer(data);
-          break;
+          onOffer(data)
+          break
         case "answer":
-          onAnswer(data);
-          break;
+          if (!data.sender) {
+            console.error('INVALID answer message')
+          } else {
+            onAnswer(data)
+          }
+          break
         case "candidate":
           onCandidate(data);
-          break;
+          break
+        case "channelMessage":
+          onChannelMessage(data);
+          break
         default:
-          console.log("other message received")
+          console.log(`${data.type} type not handled in switch`)
           console.log(data)
-          break;
+          break
       }
     }
   }, [socketMessages]);
@@ -129,8 +139,15 @@ function onMessageArrived(message) {
 
   const send = data => {
     //webSocket.current.send(JSON.stringify(data));
+    console.log('sending')
+    console.log(data)
     client.current.publish("demo",JSON.stringify(data))
-  };
+  }
+
+  //was { data }
+  const onChannelMessage = (data) => {
+    handleDataChannelMessageReceived(data)
+  }
 
   const handleLogin = () => {
     setLoggingIn(true);
@@ -138,8 +155,7 @@ function onMessageArrived(message) {
     // for now, in demo mode
     // users should be array of logged in users
     // back end will need to maintain
-    send({
-      type: "login",
+    send({ type: "login",
       name,
       success: true,
       message:"This is just a demo",
@@ -147,7 +163,8 @@ function onMessageArrived(message) {
     });
   };
 
-  const updateUsersList = ({ user }) => {
+  // was { user }
+  const updateUsersList = (user) => {
     setUsers(prev => [...prev, user]);
   };
 
@@ -155,25 +172,33 @@ function onMessageArrived(message) {
     setUsers(prev => prev.filter(u => u.userName !== user.userName));
   }
 
-  const handleDataChannelMessageReceived = ({ data }) => {
-    const message = JSON.parse(data);
-    const { name: user } = message;
-    let messages = messagesRef.current;
-    let userMessages = messages[user];
+  //message received from user in channel
+  //was { data }
+  const handleDataChannelMessageReceived = (data) => {
+    const message = data //JSON.parse(data);
+    //const { name: user } = message
+    const sender = message.sender
+    let messages = messagesRef.current
+    let userMessages = messages[sender]
     if (userMessages) {
-      userMessages = [...userMessages, message];
-      let newMessages = Object.assign({}, messages, { [user]: userMessages });
-      messagesRef.current = newMessages;
-      setMessages(newMessages);
+      //load previous conversation with user
+      console.log("previous convo")
+      userMessages = [...userMessages, message]
+      let newMessages = Object.assign({}, messages, { [sender]: userMessages })
+      messagesRef.current = newMessages
+      setMessages(newMessages)
     } else {
-      let newMessages = Object.assign({}, messages, { [user]: [message] });
-      messagesRef.current = newMessages;
-      setMessages(newMessages);
+      // start a new conversation with user
+      console.log("new convo")
+      let senderMessages = { [sender]: [message] }
+      let newMessages = Object.assign({}, messages, senderMessages)
+      messagesRef.current = senderMessages
+      setMessages(newMessages)
     }
-  };
+  }
 
   const onLogin = ({ success, message, users: loggedIn }) => {
-    setLoggingIn(false);
+    setLoggingIn(false)
     if (success) {
       setAlert(
         <SweetAlert
@@ -184,25 +209,26 @@ function onMessageArrived(message) {
         >
           Logged in successfully!
         </SweetAlert>
-      );
-      setIsLoggedIn(true);
-      setUsers(loggedIn);
+      )
+      setIsLoggedIn(true)
+      updateUsersList(loggedIn[0])
 
       //setup connection to peer
+      //for now this is required. try to replace
       //can we pass webrtc message over mqtt???
       let localConnection = new RTCPeerConnection(configuration);
       //when the browser finds an ice candidate we send it to another peer
-      localConnection.onicecandidate = ({ candidate }) => {
-        let connectedTo = connectedRef.current;
+      // localConnection.onicecandidate = ({ candidate }) => {
+      //   let connectedTo = connectedRef.current;
 
-        if (candidate && !!connectedTo) {
-          send({
-            name: connectedTo,
-            type: "candidate",
-            candidate
-          });
-        }
-      };
+      //   if (candidate && !!connectedTo) {
+      //     send({
+      //       name: connectedTo,
+      //       type: "candidate",
+      //       candidate
+      //     });
+      //   }
+      // };
       localConnection.ondatachannel = event => {
         console.log("Data channel is created!");
         let receiveChannel = event.channel;
@@ -228,10 +254,12 @@ function onMessageArrived(message) {
     }
   };
 
-  //when somebody wants to message us
-  const onOffer = ({ offer, name }) => {
-    setConnectedTo(name);
-    connectedRef.current = name;
+  //when somebody wants to connect to us
+  // was { offer, name }
+  const onOffer = (offerMessage) => {
+    if (offerMessage.sender === name) return
+    setConnectedTo(offerMessage.sender);
+    connectedRef.current = offerMessage.sender;
 
     // connection
     //   .setRemoteDescription(new RTCSessionDescription(offer))
@@ -239,7 +267,12 @@ function onMessageArrived(message) {
     //   //erroring, not sure what it does
     //   //.then(answer => connection.setLocalDescription(answer))
     //   .then(() =>
-        send({ type: "answer", answer: connection.localDescription, name })
+        // send answer from us to offer sender
+        send({ type: "answer", 
+          answer: connection.localDescription, 
+          sender: name, 
+          peer: offerMessage.sender 
+        })
       // )
       // .catch(e => {
       //   console.log({ e });
@@ -257,9 +290,11 @@ function onMessageArrived(message) {
       // });
   }
 
-  //when another user answers to our offer
-  const onAnswer = ({ answer }) => {
-    console.log('thanks for accepting. you are now connected')
+  //when a peer answers our offer
+  // was { answer }
+  const onAnswer = (answer) => {
+    if (answer.peer === name) return
+    console.log(`thanks for accepting. you are now connected to ${answer.peer}`)
     //connection.setRemoteDescription(new RTCSessionDescription(answer));
   };
 
@@ -271,31 +306,32 @@ function onMessageArrived(message) {
 
   //when a user clicks the send message button
   const sendMsg = () => {
-    const time = format(new Date(), "yyyy-MM-dd'T'HH:mm:ss.SSSxxx");
-    let text = { time, message, name };
-    let messages = messagesRef.current;
-    let connectedTo = connectedRef.current;
-    let userMessages = messages[connectedTo];
+    const time = format(new Date(), "yyyy-MM-dd'T'HH:mm:ss.SSSxxx")
+    let text = { type:"channelMessage", time, message, sender: name }
+    let messages = messagesRef.current
+    let connectedTo = connectedRef.current
+    let userMessages = messages[connectedTo]
     if (messages[connectedTo]) {
-      userMessages = [...userMessages, text];
+      userMessages = [...userMessages, text]
       let newMessages = Object.assign({}, messages, {
         [connectedTo]: userMessages
       });
       messagesRef.current = newMessages;
-      setMessages(newMessages);
+      setMessages(newMessages)
     } else {
       userMessages = Object.assign({}, messages, { [connectedTo]: [text] });
-      messagesRef.current = userMessages;
-      setMessages(userMessages);
+      messagesRef.current = userMessages
+      setMessages(userMessages)
     }
     //just send it to group, set up channels later
     //channel.send(JSON.stringify(text));
-    send(JSON.stringify(text));
-    setMessage("");
+    send(text)
+    setMessage("")
   };
 
-  //try connecting to user?
-  const handleConnection = name => {
+  //connect to a peer with offer
+  //we are sender, peer is person we are trying to connect to
+  const handleConnectToPeer = peer => {
     // var dataChannelOptions = {
     //   reliable: true
     // };
@@ -323,7 +359,7 @@ function onMessageArrived(message) {
       .createOffer()
       .then(offer => connection.setLocalDescription(offer))
       .then(() =>
-        send({ type: "offer", offer: connection.localDescription, name })
+        send({ type: "offer", offer: connection.localDescription, sender: name, peer })
       )
       .catch(e =>
         setAlert(
@@ -337,10 +373,10 @@ function onMessageArrived(message) {
             An error has occurred.
           </SweetAlert>
         )
-      );
-  };
+      )
+  }
 
-  const toggleConnection = userName => {
+  const toggleConnectToPeer = userName => {
     console.log("toggleConnection")
     if (connectedRef.current === userName) {
       setConnecting(true);
@@ -351,7 +387,7 @@ function onMessageArrived(message) {
       setConnecting(true);
       setConnectedTo(userName);
       connectedRef.current = userName;
-      handleConnection(userName);
+      handleConnectToPeer(userName);
       setConnecting(false);
     }
   };
@@ -395,7 +431,7 @@ function onMessageArrived(message) {
           <Grid>
             <UsersList
               users={users}
-              toggleConnection={toggleConnection}
+              toggleConnection={toggleConnectToPeer}
               connectedTo={connectedTo}
               connection={connecting}
             />
