@@ -8,7 +8,8 @@ import {
   Card,
   Sticky,
   Button,
-  Comment
+  Comment,
+  Form  
 } from "semantic-ui-react";
 import { formatRelative } from "date-fns";
 import avatar from "./avatar.png";
@@ -49,6 +50,7 @@ const MessageBox = ({ messages, connectedTo, message, setMessage, sendMsg, name 
                 </Header>
               </Segment>
             )}
+            <Form>
             <Input
               fluid
               type="text"
@@ -63,6 +65,7 @@ const MessageBox = ({ messages, connectedTo, message, setMessage, sendMsg, name 
                 Send Message
               </Button>
             </Input>
+            </Form>
           </Card.Content>
         </Card>
       </Sticky>

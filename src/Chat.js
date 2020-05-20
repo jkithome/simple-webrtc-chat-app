@@ -6,7 +6,8 @@ import {
   Grid,
   Segment,
   Button,
-  Loader
+  Loader,
+  Form
 } from "semantic-ui-react";
 import SweetAlert from "react-bootstrap-sweetalert";
 import { format } from "date-fns";
@@ -406,6 +407,7 @@ function onMessageArrived(message) {
           <Grid centered columns={4}>
             <Grid.Column>
               {(!isLoggedIn && (
+                <Form>
                 <Input
                   fluid
                   disabled={loggingIn}
@@ -424,6 +426,7 @@ function onMessageArrived(message) {
                     Login
                   </Button>
                 </Input>
+                </Form>
               )) || (
                 <Segment raised textAlign="center" color="olive">
                   Logged In as: {name}
