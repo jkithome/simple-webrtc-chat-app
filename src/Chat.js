@@ -14,6 +14,7 @@ import "./App.css";
 import UsersList from "./UsersList";
 import MessageBox from "./MessageBox";
 import Paho from "paho-mqtt"
+import MonetizationOff from './MonetizationOff'
 
 // Use for remote connections
 const configuration = {
@@ -391,13 +392,15 @@ function onMessageArrived(message) {
       setConnecting(false);
     }
   };
+
   return (
     <div className="App">
       {alert}
       <Header as="h2" icon>
         <Icon name="users" />
-        Web Monetization Chat App
+        <a href="https://webmonetization.org/docs/getting-started.html" target="_blank" rel="noopener noreferrer">Web Monetization</a> Chat
       </Header>
+      <MonetizationOff/>
       {(socketOpen && (
         <Fragment>
           <Grid centered columns={4}>

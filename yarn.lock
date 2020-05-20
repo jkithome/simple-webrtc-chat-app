@@ -8654,10 +8654,9 @@ react-is@^16.6.3, react-is@^16.8.1, react-is@^16.8.4, react-is@^16.8.6:
   version "16.12.0"
   resolved "https://registry.yarnpkg.com/react-is/-/react-is-16.12.0.tgz#2cc0fe0fba742d97fd527c42a13bec4eeb06241c"
 
-react-monetize@^1.0.0-rc.2:
+react-monetize@dfoderick/react-monetize#isMonetized:
   version "1.0.0-rc.2"
-  resolved "https://registry.yarnpkg.com/react-monetize/-/react-monetize-1.0.0-rc.2.tgz#c1303b1bb09f6e681f31d7a6e8eb463aa770f6cc"
-  integrity sha512-GD+pHAzA9mQKcGMMpSyaKnTzrkgfTio3PtnN3rApqUWnZKf/bMacd9dbHVyFvkkHfHX3/6662P+DcdOUvrNXBg==
+  resolved "https://codeload.github.com/dfoderick/react-monetize/tar.gz/0c37609e4568e4e3679d8cfbea7fa62c64aa3583"
   dependencies:
     react "^16.13.1"
     react-dom "^16.13.1"
