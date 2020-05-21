@@ -199,22 +199,23 @@ function onMessageArrived(message) {
     //const { name: user } = message
     const sender = message.sender
     const recipient = message.recipient
+    const peer = (sender === me) ? recipient : sender
     // list of conversations we have had
     let conversations = messagesRef.current
-    let userMessages = conversations[sender]
-    if (userMessages) {
-      //load previous conversation with user
+    let peerMessages = conversations[peer]
+    if (peerMessages) {
+      //load previous conversation with our peer
       console.log("previous convo")
-      userMessages = [...userMessages, message]
-      let newMessages = Object.assign({}, messages, { [sender]: userMessages })
+      peerMessages = [...peerMessages, message]
+      let newMessages = Object.assign({}, messages, { [peer]: peerMessages })
       messagesRef.current = newMessages
       setMessages(newMessages)
       console.log(newMessages)
     } else {
-      // start a new conversation with user
+      // start a new conversation with peer
       console.log("new convo")
-      let senderMessages = { [sender]: [sender] }
-      let newMessages = Object.assign({}, messages, senderMessages)
+      peerMessages = { [peer]: [message] }
+      let newMessages = Object.assign({}, messages, peerMessages)
       messagesRef.current = newMessages
       setMessages(newMessages)
       console.log(newMessages)
@@ -282,7 +283,7 @@ function onMessageArrived(message) {
   //when somebody wants to connect to us
   // was { offer, name }
   const onOffer = (offerMessage) => {
-    if (offerMessage.peer != me) return
+    if (offerMessage.peer !== me) return
     setConnectedTo(offerMessage.sender);
     connectedRef.current = offerMessage.sender;
 
@@ -318,7 +319,7 @@ function onMessageArrived(message) {
   //when a peer answers our offer
   // was { answer }
   const onAnswer = (answer) => {
-    if (answer.sender != me) return
+    if (answer.sender !== me) return
     console.log(`thanks for accepting. you are now connected to ${answer.peer}`)
     //connection.setRemoteDescription(new RTCSessionDescription(answer));
   };
