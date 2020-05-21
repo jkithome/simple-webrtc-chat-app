@@ -38,7 +38,7 @@ const Chat = ({ connection, updateConnection, channel, updateChannel }) => {
   const [connecting, setConnecting] = useState(false);
   const [alert, setAlert] = useState(null);
   const connectedRef = useRef();
-  const webSocket = useRef(null);
+  //const webSocket = useRef(null);
   const [message, setMessage] = useState("");
   const messagesRef = useRef({});
   const [messages, setMessages] = useState({});
@@ -56,11 +56,11 @@ const Chat = ({ connection, updateConnection, channel, updateChannel }) => {
     // };
     // return () => webSocket.current.close();
 
-    webSocket.current = new WebSocket('ws://bitcoinofthings.com:1884');
+    //webSocket.current = new WebSocket('wss://bitcoinofthings.com:8884');
 
     const clientID = "bot-demo-ws-" + parseInt(Math.random() * 100);
     const host = "mqtt.bitcoinofthings.com"
-    const port = "1884"
+    const port = "8884"
     const isSSL = true
     const usessl = (isSSL && port === "8884")
     const username = "demo"
