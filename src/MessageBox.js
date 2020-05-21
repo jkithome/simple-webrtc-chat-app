@@ -1,3 +1,4 @@
+// This is the message area
 import React from "react";
 import {
   Header,
@@ -9,15 +10,20 @@ import {
   Sticky,
   Button,
   Comment,
-  Form  
+  Form,
+  Label,
+  Message
 } from "semantic-ui-react";
 import { formatRelative } from "date-fns";
 import avatar from "./avatar.png";
 
-const MessageBox = ({ messages, connectedTo, message, setMessage, sendMsg, name }) => {
+const MessageBox = ({ messages, connectedTo, message, setMessage, sendMsg, me }) => {
   return (
     <Grid.Column width={11}>
       <Sticky>
+        <Message warning>
+          <Message.Header>Nothing here is private! All messages are sent to everyone on this site.</Message.Header>
+        </Message>
         <Card fluid>
           <Card.Content
             header={
@@ -27,17 +33,17 @@ const MessageBox = ({ messages, connectedTo, message, setMessage, sendMsg, name 
           <Card.Content>
             {!!connectedTo && messages[connectedTo] ? (
               <Comment.Group>
-                {messages[connectedTo].map(({ name: sender, message: text, time }) => (
-                  <Comment key={`msg-${name}-${time}`}>
+                {messages[connectedTo].map(({ sender, message: text, time }) => (
+                  <Comment key={`msg-${sender}-${time}`}>
                     <Comment.Avatar src={avatar} />
                     <Comment.Content>
-                      <Comment.Author>{sender === name ? 'You' : sender}</Comment.Author>
+                      <Comment.Author><Label pointing={sender === me ? 'right' : 'left'}>{sender === me ? 'Me' : sender}</Label></Comment.Author>
                       <Comment.Metadata>
                         <span>
                           {formatRelative(new Date(time), new Date())}
                         </span>
                       </Comment.Metadata>
-                      <Comment.Text>{text}</Comment.Text>
+                <Comment.Text>{text}</Comment.Text>
                     </Comment.Content>
                   </Comment>
                 ))}

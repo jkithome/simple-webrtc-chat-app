@@ -7,7 +7,8 @@ import {
   Segment,
   Button,
   Loader,
-  Form
+  Form,
+  Label
 } from "semantic-ui-react";
 import SweetAlert from "react-bootstrap-sweetalert";
 import { format } from "date-fns";
@@ -29,7 +30,8 @@ const Chat = ({ connection, updateConnection, channel, updateChannel }) => {
   const [socketOpen, setSocketOpen] = useState(false);
   const [socketMessages, setSocketMessages] = useState([]);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [name, setName] = useState("");
+  const [me, setMe] = useState("");
+  const [paymentPointer, setPaymentPointer] = useState("");
   const [loggingIn, setLoggingIn] = useState(false);
   const [users, setUsers] = useState([]);
   const [connectedTo, setConnectedTo] = useState("");
@@ -101,9 +103,19 @@ function onMessageArrived(message) {
           break
         case "login":
           // we sent the login message
-          if (data.name === name) onLogin(data)
-          // or someone else logged in
-          else updateUsersList(data.users[0])
+          if (data.name === me) onLogin(data)
+          else {
+            // someone else logged in. add to our list of users
+            updateUsersList(data.users[0])
+            // broadcast ourselves so that new user sees us
+            if (me) {
+              send({ type: "updateUsers",
+                key: me,
+                userName: me,
+                pointer: paymentPointer
+              })
+            }
+          }
           break
         case "updateUsers":
           updateUsersList(data);
@@ -158,30 +170,38 @@ function onMessageArrived(message) {
     // users should be array of logged in users
     // back end will need to maintain
     send({ type: "login",
-      name,
+      name: me,
       success: true,
-      message:"This is just a demo",
-      users: [{key:name, userName: name}]
+      message:"I just logged in",
+      users: [{key:me, userName: me, pointer: paymentPointer}]
     });
   };
 
   // was { user }
   const updateUsersList = (user) => {
+    removeUser(user)
+    user.avatar = `https://avatars.dicebear.com/api/human/${user.userName}.svg`
     setUsers(prev => [...prev, user]);
   };
 
-  const removeUser = ({ user }) => {
+  //was { user }
+  const removeUser = (user) => {
     setUsers(prev => prev.filter(u => u.userName !== user.userName));
   }
 
   //message received from user in channel
-  //was { data }
+  //TODO: refactor messages model
+  // really should be conversations[sender]/messages
   const handleDataChannelMessageReceived = (data) => {
+    //todo: group messages are also sent here
+    if (!(data.recipient === me || data.sender === me)) return
     const message = data //JSON.parse(data);
     //const { name: user } = message
     const sender = message.sender
-    let messages = messagesRef.current
-    let userMessages = messages[sender]
+    const recipient = message.recipient
+    // list of conversations we have had
+    let conversations = messagesRef.current
+    let userMessages = conversations[sender]
     if (userMessages) {
       //load previous conversation with user
       console.log("previous convo")
@@ -189,13 +209,15 @@ function onMessageArrived(message) {
       let newMessages = Object.assign({}, messages, { [sender]: userMessages })
       messagesRef.current = newMessages
       setMessages(newMessages)
+      console.log(newMessages)
     } else {
       // start a new conversation with user
       console.log("new convo")
-      let senderMessages = { [sender]: [message] }
+      let senderMessages = { [sender]: [sender] }
       let newMessages = Object.assign({}, messages, senderMessages)
-      messagesRef.current = senderMessages
+      messagesRef.current = newMessages
       setMessages(newMessages)
+      console.log(newMessages)
     }
   }
 
@@ -205,7 +227,8 @@ function onMessageArrived(message) {
       setAlert(
         <SweetAlert
           success
-          title="Success!"
+          title={`Hello ${me}`}
+          timeout={3000}
           onConfirm={closeAlert}
           onCancel={closeAlert}
         >
@@ -259,7 +282,7 @@ function onMessageArrived(message) {
   //when somebody wants to connect to us
   // was { offer, name }
   const onOffer = (offerMessage) => {
-    if (offerMessage.sender === name) return
+    if (offerMessage.peer != me) return
     setConnectedTo(offerMessage.sender);
     connectedRef.current = offerMessage.sender;
 
@@ -272,7 +295,7 @@ function onMessageArrived(message) {
         // send answer from us to offer sender
         send({ type: "answer", 
           answer: connection.localDescription, 
-          sender: name, 
+          sender: me, 
           peer: offerMessage.sender 
         })
       // )
@@ -295,7 +318,7 @@ function onMessageArrived(message) {
   //when a peer answers our offer
   // was { answer }
   const onAnswer = (answer) => {
-    if (answer.peer === name) return
+    if (answer.sender != me) return
     console.log(`thanks for accepting. you are now connected to ${answer.peer}`)
     //connection.setRemoteDescription(new RTCSessionDescription(answer));
   };
@@ -309,25 +332,26 @@ function onMessageArrived(message) {
   //when a user clicks the send message button
   const sendMsg = () => {
     const time = format(new Date(), "yyyy-MM-dd'T'HH:mm:ss.SSSxxx")
-    let text = { type:"channelMessage", time, message, sender: name }
-    let messages = messagesRef.current
+    //let messages = messagesRef.current
     let connectedTo = connectedRef.current
-    let userMessages = messages[connectedTo]
-    if (messages[connectedTo]) {
-      userMessages = [...userMessages, text]
-      let newMessages = Object.assign({}, messages, {
-        [connectedTo]: userMessages
-      });
-      messagesRef.current = newMessages;
-      setMessages(newMessages)
-    } else {
-      userMessages = Object.assign({}, messages, { [connectedTo]: [text] });
-      messagesRef.current = userMessages
-      setMessages(userMessages)
-    }
-    //just send it to group, set up channels later
-    //channel.send(JSON.stringify(text));
-    send(text)
+    let messageEntity = { type:"channelMessage", time, message, 
+      sender: me, recipient: connectedTo || "group" }
+    //let userMessages = messages[connectedTo]
+    // if (messages[connectedTo]) {
+    //   userMessages = [...userMessages, text]
+    //   let newMessages = Object.assign({}, messages, {
+    //     [connectedTo]: userMessages
+    //   });
+    //   messagesRef.current = newMessages;
+    //   setMessages(newMessages)
+    // } else {
+    //   userMessages = Object.assign({}, messages, { [connectedTo]: [text] });
+    //   messagesRef.current = userMessages
+    //   setMessages(userMessages)
+    // }
+    //just send it to group, ui will filter out messages
+    // not intended for recipient
+    send(messageEntity)
     setMessage("")
   };
 
@@ -361,7 +385,7 @@ function onMessageArrived(message) {
       .createOffer()
       .then(offer => connection.setLocalDescription(offer))
       .then(() =>
-        send({ type: "offer", offer: connection.localDescription, sender: name, peer })
+        send({ type: "offer", offer: connection.localDescription, sender: me, peer })
       )
       .catch(e =>
         setAlert(
@@ -404,32 +428,47 @@ function onMessageArrived(message) {
       <MonetizationOff/>
       {(socketOpen && (
         <Fragment>
-          <Grid centered columns={4}>
+          <Grid centered columns={2}>
             <Grid.Column>
               {(!isLoggedIn && (
+                <>
                 <Form>
-                <Input
-                  fluid
+                <Form.Field>
+                <Label pointing="below">Username is your chat alias (authentication not enabled yet)</Label>
+                <Input icon='user' iconPosition='left'
                   disabled={loggingIn}
                   type="text"
-                  onChange={e => setName(e.target.value)}
+                  onChange={e => setMe(e.target.value)}
                   placeholder="Username..."
                   action
+                  autoFocus
                 >
-                  <input />
-                  <Button
+                </Input>
+                </Form.Field>
+                <Form.Field>
+                <Label pointing="below"><a href="https://paymentpointers.org/" target="_blank" rel="noopener noreferrer">Payment Pointer</a> is your (optional) wallet address where you get paid when you chat</Label>
+                <Input icon='dollar' iconPosition='left'
+                  disabled={loggingIn}
+                  type="text"
+                  onChange={e => setPaymentPointer(e.target.value)}
+                  placeholder="Payment Pointer"
+                  action
+                >
+                </Input>
+                </Form.Field>
+                <Button
                     color="teal"
-                    disabled={!name || loggingIn}
+                    disabled={!me || loggingIn}
                     onClick={handleLogin}
                   >
                     <Icon name="sign-in" />
                     Login
                   </Button>
-                </Input>
                 </Form>
+                </>
               )) || (
                 <Segment raised textAlign="center" color="olive">
-                  Logged In as: {name}
+                  Logged In as: {me} {paymentPointer}
                 </Segment>
               )}
             </Grid.Column>
@@ -447,13 +486,13 @@ function onMessageArrived(message) {
               message={message}
               setMessage={setMessage}
               sendMsg={sendMsg}
-              name={name}
+              me={me}
             />
           </Grid>
         </Fragment>
       )) || (
         <Loader size="massive" active inline="centered">
-          Loading
+          Connecting to messaging service...
         </Loader>
       )}
     </div>
