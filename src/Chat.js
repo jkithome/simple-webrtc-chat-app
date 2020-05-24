@@ -1,4 +1,6 @@
-import React, { Fragment, useState, useEffect, useRef } from "react";
+import React, 
+  { Fragment, 
+    useState, useEffect, useRef } from "react";
 import {
   Header,
   Icon,
@@ -8,7 +10,7 @@ import {
   Button,
   Loader,
   Form,
-  Label
+  Label,
 } from "semantic-ui-react";
 import SweetAlert from "react-bootstrap-sweetalert";
 import { format } from "date-fns";
@@ -37,6 +39,7 @@ const Chat = ({ connection, updateConnection, channel, updateChannel }) => {
   const [connectedTo, setConnectedTo] = useState("");
   const [connecting, setConnecting] = useState(false);
   const [alert, setAlert] = useState(null);
+  //const [activeItem, setActiveItem] = useState(null);
   const connectedRef = useRef();
   //const webSocket = useRef(null);
   const [message, setMessage] = useState("");
@@ -296,7 +299,8 @@ function onMessageArrived(message) {
         // send answer from us to offer sender
         send({ type: "answer", 
           answer: connection.localDescription, 
-          sender: me, 
+          sender: me,
+          pointer: paymentPointer,
           peer: offerMessage.sender 
         })
       // )
@@ -319,10 +323,23 @@ function onMessageArrived(message) {
   //when a peer answers our offer
   // was { answer }
   const onAnswer = (answer) => {
-    if (answer.sender !== me) return
-    console.log(`thanks for accepting. you are now connected to ${answer.peer}`)
-    //connection.setRemoteDescription(new RTCSessionDescription(answer));
-  };
+    if (answer.sender === me) {
+      console.log(`You accepted the offer. Now connected to ${answer.peer}`)
+      if (!answer.pointer) {
+        console.error(`You not have a pointer.`)
+      }
+    }
+    if (answer.peer === me) {
+      console.log(`Your offer was accepted. You are now connected to ${answer.sender}`)
+      //connection.setRemoteDescription(new RTCSessionDescription(answer))
+      if (answer.pointer) {
+        document.querySelector('meta[name="monetization"]').setAttribute("content", answer.pointer)
+        console.log(`Now paying to ${answer.pointer}`)
+      } else {
+        console.error(`${answer.sender} does not have a pointer`)
+      }
+    }
+  }
 
   //when we got ice candidate from another user
   const onCandidate = ({ candidate }) => {
@@ -419,8 +436,15 @@ function onMessageArrived(message) {
     }
   };
 
+  // const handleItemClick = (e, { name }) => setActiveItem(name)
+
   return (
     <div className="App">
+      <div className="align-left">
+        <Icon name="github">
+          <a href="https://github.com/dfoderick/money-chat/" target="_blank" rel="noopener noreferrer">GitHub</a>
+        </Icon>
+      </div>
       {alert}
       <Header as="h2" icon>
         <Icon name="users" />
